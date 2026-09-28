@@ -94,14 +94,8 @@ reported:
 no user-facing signal — which is the more interesting/systemic finding
 versus a one-off cosmetic bug.
 
-## Known limitations & what I'd do with another day
+## Limitations of what's built here
 
-- **Accessibility and security beyond input validation weren't covered.**
-  No axe-core scan, no auth/authorization testing (this form has none to
-  test), no broader security sweep beyond the SQL-injection-in-name API
-  case. I'd add an axe-core check on the smoke test as a cheap first step.
-- **Only chromium + webkit are exercised**, not firefox — no specific
-  reason to exclude it beyond time; trivial to add to `playwright.config.ts`.
 - **The hydration-race fix (`waitForLoadState('networkidle')` +
   submit-button-interactive check) is a heuristic, not a guarantee.** It
   held up across repeated runs but isn't logically airtight — a more
@@ -112,10 +106,14 @@ versus a one-off cosmetic bug.
   was blocked by a CloudFront 403 before reaching the app (see
   `README-postman.md` for the full writeup, including the actual response
   captured and what I'd ask for in a real engagement to unblock it).
-- **Empty-required-field validation test needed reworking mid-suite**
-  because this app has no native HTML5 `required` validation at all —
-  it's fully custom JS-driven, which isn't obvious from the outside and
-  cost real debugging time before I found it.
+- **The empty-required-field test only confirms submission is blocked**,
+  not that error messages are visibly shown — this app has no native
+  HTML5 `required` validation (fully custom JS-driven), which wasn't
+  obvious from the outside and cost real debugging time to establish.
+
+For the full picture of what's tested vs. not yet automated — prioritized
+by risk, not just a to-do list — see `TEST_PLAN.md`, specifically the test
+case matrix and its status column.
 
 ## Walkthrough notes
 

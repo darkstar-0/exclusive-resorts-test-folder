@@ -19,6 +19,7 @@ export class InquiryPage {
 
   private capturedPayload: string | null = null;
   private emailValidated: Promise<unknown> | null = null;
+  private submissionCount = 0;
 
   constructor(page: Page) {
     this.page = page;
@@ -46,6 +47,7 @@ export class InquiryPage {
 
   async stubSubmit() {
     await this.page.route('**/submit-form/', async (route) => {
+      this.submissionCount += 1;
       this.capturedPayload = route.request().postData();
       await route.fulfill({
         status: 200,
@@ -53,6 +55,10 @@ export class InquiryPage {
         body: JSON.stringify({ success: true }),
       });
     });
+  }
+
+  getSubmissionCount(): number {
+    return this.submissionCount;
   }
 
   async fillName(value: string) {
@@ -138,5 +144,36 @@ export class InquiryPage {
         validationMessage: (el as HTMLInputElement).validationMessage,
       }))
     );
+  }
+
+    // Confirmed behavior: there is no static "success" message — a
+  // successful submit transitions the user to the next step (the
+  // referral/club-connection page). So "success is visible" means "the
+  // page actually moved on," not any particular text appearing. Checking
+  // for a URL/DOM change is more reliable than guessing the next page's
+  // markup.
+  async didAdvanceAfterSubmit(urlBeforeSubmit: string): Promise<boolean> {
+    // give the client-side transition a moment to happen
+    await this.page.waitForTimeout(500);
+    return this.page.url() !== urlBeforeSubmit;
+  }
+
+  async hasVisibleFieldErrors(): Promise<boolean> {
+    // Broad heuristic: any element whose class hints at an error/invalid
+    // state. ADJUST to the app's real error-styling convention once known.
+    const count = await this.page
+      .locator('[class*="error" i], [class*="invalid" i]')
+      .count();
+    return count > 0;
+  }
+
+  // Returns a short description of whatever element currently has focus,
+  // for keyboard-navigation tests (TC-16, TC-12).
+  async getFocusedElementDescriptor(): Promise<string> {
+    return this.page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el) return 'none';
+      return `${el.tagName}${el.id ? '#' + el.id : ''}${el.getAttribute('name') ? '[name=' + el.getAttribute('name') + ']' : ''}${el.getAttribute('type') ? '[type=' + el.getAttribute('type') + ']' : ''}`;
+    });
   }
 }

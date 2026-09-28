@@ -1,0 +1,323 @@
+{
+  "info": {
+    "_postman_id": "b3f2a6b0-6e2e-4c1a-9c0a-exres-inquiry-api",
+    "name": "Exclusive Resorts - Inquiry Form Submit API",
+    "description": "Exercises POST {{baseUrl}}/submit-form/, the backend endpoint the /inquire/ form posts to.\n\nIMPORTANT: the request shape below is captured from a real browser network request (via Playwright route interception during UI testing). The RESPONSE shapes and exact status codes asserted here are best-effort inferences, NOT confirmed against a live, unmocked server — every capture we had access to was intercepted and stubbed before it reached the real backend. Run this collection against real staging first and adjust the response-shape/status assertions (marked ADJUST AFTER LIVE RUN below) to match what actually comes back.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "responseTimes", "value": "[]" }
+  ],
+  "item": [
+    {
+      "name": "API-01 - Valid Submission (200 Baseline)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": \"Email=qa.candidate%2Bapi.valid%40gmail.com&Phone=4235559876&FirstName=API&LastName=Valid&ZIP=80014&termsAgreement=true&FBID=&GCLID=&msclkid=&C_SFDCLastCampaignID=&C_Page_URL=https%3A%2F%2Fpublic-site.stage.exclusiveresorts.com%2Finquire%2F&smsOptIn=&preferredTime=&preferredDate=&preferredContactType=Email&Braze_Campaign_ID=&Referrer_URL=\",\n  \"form\": \"SHORT_FORM\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/submit-form/",
+          "host": ["{{baseUrl}}"],
+          "path": ["submit-form", ""]
+        },
+        "description": "Baseline happy-path submission, captured from a real UI-driven request. Expected: 2xx with a success payload."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 2xx', function () {",
+              "    pm.expect(pm.response.code).to.be.within(200, 299);",
+              "});",
+              "",
+              "pm.test('Response time is reasonable (<2000ms)', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});",
+              "",
+              "pm.test('Response body is valid JSON', function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "// ADJUST AFTER LIVE RUN: exact success-payload shape is unconfirmed.",
+              "pm.test('Response indicates success (ADJUST AFTER LIVE RUN)', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.be.an('object');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "API-02 - POST Missing a Required Field",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": \"Phone=4235559876&FirstName=API&LastName=MissingEmail&ZIP=80014&termsAgreement=true&FBID=&GCLID=&msclkid=&C_SFDCLastCampaignID=&C_Page_URL=https%3A%2F%2Fpublic-site.stage.exclusiveresorts.com%2Finquire%2F&smsOptIn=&preferredTime=&preferredDate=&preferredContactType=Email&Braze_Campaign_ID=&Referrer_URL=\",\n  \"form\": \"SHORT_FORM\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/submit-form/",
+          "host": ["{{baseUrl}}"],
+          "path": ["submit-form", ""]
+        },
+        "description": "Email field omitted entirely from the values string. Expected: 4xx with a field-level error."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 4xx', function () {",
+              "    pm.expect(pm.response.code).to.be.within(400, 499);",
+              "});",
+              "",
+              "// ADJUST AFTER LIVE RUN: confirm the real field-level error format.",
+              "pm.test('Error response references the missing field (ADJUST AFTER LIVE RUN)', function () {",
+              "    pm.expect(pm.response.text().toLowerCase()).to.include('email');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "API-03 - POST With Malformed Email",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": \"Email=not-an-email&Phone=4235559876&FirstName=API&LastName=BadEmail&ZIP=80014&termsAgreement=true&FBID=&GCLID=&msclkid=&C_SFDCLastCampaignID=&C_Page_URL=https%3A%2F%2Fpublic-site.stage.exclusiveresorts.com%2Finquire%2F&smsOptIn=&preferredTime=&preferredDate=&preferredContactType=Email&Braze_Campaign_ID=&Referrer_URL=\",\n  \"form\": \"SHORT_FORM\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/submit-form/",
+          "host": ["{{baseUrl}}"],
+          "path": ["submit-form", ""]
+        },
+        "description": "Email value present but not a valid email format. Expected: 4xx validation error. NOTE: UI testing today found the phone equivalent of this case (invalid format shown, but client-side message did NOT actually block the request) - worth confirming server-side email validation is real and not just cosmetic, the same way phone validation turned out to be."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 4xx', function () {",
+              "    pm.expect(pm.response.code).to.be.within(400, 499);",
+              "});",
+              "",
+              "pm.test('Server actually rejects malformed email (does not silently accept it)', function () {",
+              "    pm.expect(pm.response.code).to.not.be.within(200, 299);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "API-04 - POST Without Consent Flag",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": \"Email=qa.candidate%2Bapi.noconsent%40gmail.com&Phone=4235559876&FirstName=API&LastName=NoConsent&ZIP=80014&termsAgreement=false&FBID=&GCLID=&msclkid=&C_SFDCLastCampaignID=&C_Page_URL=https%3A%2F%2Fpublic-site.stage.exclusiveresorts.com%2Finquire%2F&smsOptIn=&preferredTime=&preferredDate=&preferredContactType=Email&Braze_Campaign_ID=&Referrer_URL=\",\n  \"form\": \"SHORT_FORM\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/submit-form/",
+          "host": ["{{baseUrl}}"],
+          "path": ["submit-form", ""]
+        },
+        "description": "termsAgreement explicitly false. Expected: 4xx - server-side enforcement, independent of the client-side gate the UI form already relies on."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 4xx (server enforces consent, not just the client UI)', function () {",
+              "    pm.expect(pm.response.code).to.be.within(400, 499);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "API-05 - POST With SQL Injection Payload in Name",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": \"Email=qa.candidate%2Bapi.sqli%40gmail.com&Phone=4235559876&FirstName=Robert%27%29%3B%20DROP%20TABLE%20Students%3B--&LastName=Tables&ZIP=80014&termsAgreement=true&FBID=&GCLID=&msclkid=&C_SFDCLastCampaignID=&C_Page_URL=https%3A%2F%2Fpublic-site.stage.exclusiveresorts.com%2Finquire%2F&smsOptIn=&preferredTime=&preferredDate=&preferredContactType=Email&Braze_Campaign_ID=&Referrer_URL=\",\n  \"form\": \"SHORT_FORM\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/submit-form/",
+          "host": ["{{baseUrl}}"],
+          "path": ["submit-form", ""]
+        },
+        "description": "Classic 'Bobby Tables' payload in FirstName. Expected: input is sanitized/escaped and no raw DB error is leaked - the endpoint should not 500."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('No server error (not a 5xx)', function () {",
+              "    pm.expect(pm.response.code).to.be.below(500);",
+              "});",
+              "",
+              "pm.test('No raw SQL/DB error leaked in response body', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    const leakPatterns = ['sql syntax', 'sqlstate', 'ora-', 'mysqlexception', 'unclosed quotation', 'sqlite error', 'pg::', 'syntax error at or near'];",
+              "    leakPatterns.forEach(function (pattern) {",
+              "        pm.expect(body).to.not.include(pattern);",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "API-06 - GET on Submit Endpoint",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/submit-form/",
+          "host": ["{{baseUrl}}"],
+          "path": ["submit-form", ""]
+        },
+        "description": "GET against a POST-only endpoint. Expected: 405 Method Not Allowed."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 405 Method Not Allowed', function () {",
+              "    pm.response.to.have.status(405);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "API-07 - Response Time (p95)",
+      "item": [
+        {
+          "name": "Valid Submission (run x10 via Newman -n)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"values\": \"Email=qa.candidate%2Bapi.perf%40gmail.com&Phone=4235559876&FirstName=API&LastName=Perf&ZIP=80014&termsAgreement=true&FBID=&GCLID=&msclkid=&C_SFDCLastCampaignID=&C_Page_URL=https%3A%2F%2Fpublic-site.stage.exclusiveresorts.com%2Finquire%2F&smsOptIn=&preferredTime=&preferredDate=&preferredContactType=Email&Braze_Campaign_ID=&Referrer_URL=\",\n  \"form\": \"SHORT_FORM\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/submit-form/",
+              "host": ["{{baseUrl}}"],
+              "path": ["submit-form", ""]
+            },
+            "description": "Run this request 10 times (this folder in isolation, via Newman -n 10 or the Postman Collection Runner) to sample p95 response time."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "let times = JSON.parse(pm.collectionVariables.get('responseTimes') || '[]');",
+                  "times.push(pm.response.responseTime);",
+                  "pm.collectionVariables.set('responseTimes', JSON.stringify(times));",
+                  "",
+                  "const totalIterations = parseInt(pm.environment.get('perfIterations') || '10', 10);",
+                  "",
+                  "pm.test('Individual response is under 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "if (times.length >= totalIterations) {",
+                  "    const sorted = [...times].sort(function (a, b) { return a - b; });",
+                  "    const p95Index = Math.ceil(0.95 * sorted.length) - 1;",
+                  "    const p95 = sorted[p95Index];",
+                  "    pm.test('p95 response time (' + p95 + 'ms) over ' + times.length + ' calls is under 2000ms', function () {",
+                  "        pm.expect(p95).to.be.below(2000);",
+                  "    });",
+                  "    pm.collectionVariables.set('responseTimes', '[]');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "API-08 - Response Shape Matches Contract",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"values\": \"Email=qa.candidate%2Bapi.contract%40gmail.com&Phone=4235559876&FirstName=API&LastName=Contract&ZIP=80014&termsAgreement=true&FBID=&GCLID=&msclkid=&C_SFDCLastCampaignID=&C_Page_URL=https%3A%2F%2Fpublic-site.stage.exclusiveresorts.com%2Finquire%2F&smsOptIn=&preferredTime=&preferredDate=&preferredContactType=Email&Braze_Campaign_ID=&Referrer_URL=\",\n  \"form\": \"SHORT_FORM\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/submit-form/",
+          "host": ["{{baseUrl}}"],
+          "path": ["submit-form", ""]
+        },
+        "description": "Same as the API-01 baseline; asserts the response JSON has the expected keys/types. ADJUST AFTER LIVE RUN: the property names/types below are placeholders since we've never observed a real (unmocked) response."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// ADJUST AFTER LIVE RUN: replace with the real observed contract.",
+              "pm.test('Response is a JSON object', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.be.an('object');",
+              "});",
+              "",
+              "pm.test('Response has a success indicator of the expected type (ADJUST AFTER LIVE RUN)', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('success');",
+              "    pm.expect(json.success).to.be.a('boolean');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

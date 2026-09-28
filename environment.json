@@ -1,0 +1,19 @@
+{
+  "id": "b8f6a2d0-4e5c-4c9a-9b1a-exres-inquiry-env",
+  "name": "Exclusive Resorts - Inquiry API",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "https://public-site.stage.exclusiveresorts.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "perfIterations",
+      "value": "10",
+      "type": "default",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

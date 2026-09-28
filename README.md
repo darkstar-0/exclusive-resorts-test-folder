@@ -52,13 +52,19 @@ below).
 
 ```
 tests/
-  inquiry-form.spec.ts           # smoke: happy-path submit
-  inquiry-form-negative.spec.ts  # regression: validation & known defects
+  inquiry-form.spec.ts                     # smoke: happy-path submit
+  inquiry-form-negative.spec.ts            # regression: field validation & known defects (email, consent, BUG-01, phone)
+  inquiry-form-keyboard-accessibility.spec.ts  # regression: consent checkbox keyboard reachability (TC-16 / BUG-03)
+  inquiry-form-ui-feedback.spec.ts         # regression: user-visible feedback on submit/empty-submit (TC-02 / TC-03)
+  inquiry-form-xss.spec.ts                 # regression: XSS payload in Name field (TC-09)
+  inquiry-form-postal-code.spec.ts         # regression: postal code length & special-character handling (TC-06 / TC-07)
+  inquiry-form-double-submit.spec.ts       # regression: rapid double-click does not duplicate a lead (TC-13)
 pages/
   InquiryPage.ts                 # Page Object Model for the inquiry form
 collection.json                  # Postman collection (submit-form/ endpoint)
 environment.json                 # Postman environment (baseUrl, no secrets)
 README-postman.md                # API collection details + live-run findings
+TEST_PLAN.md                     # scope, risk prioritization, full TC-01–16 test case matrix
 ```
 
 ## CI
@@ -89,10 +95,33 @@ reported:
    the click to silently no-op — no error, no network request, no visual
    feedback. A real user with a slow connection (or just a fast clicker)
    could hit Submit and have nothing happen, with no indication why.
+4. **Consent checkbox is not keyboard-operable in WebKit/Safari.**
+   Tabbing from the Name field never reaches the consent checkbox in
+   WebKit (confirmed reachable in Chromium). Consent capture here has
+   legal significance, so a keyboard-only Safari user cannot complete the
+   form at all. Likely a Safari/WebKit platform default (checkboxes are
+   excluded from Tab order unless "Full Keyboard Access" is on
+   system-wide) rather than app code, but the app can override it with an
+   explicit `tabindex`/ARIA role — and a real user hits this by default,
+   regardless of the cause.
+5. **Postal code validation is inconsistent across special characters.**
+   Confirmed `©` is blocked; still narrowing down which characters pass
+   through unblocked (an initial assumption — repeated dashes — turned
+   out to be incorrectly blocked too, so the exact bypass character(s)
+   need re-confirming before this is fully documented).
+6. **No confirmed success indicator after a valid submission.** There is
+   no static "success" message — the app is expected to advance to a
+   referral/club-connection page on success, but this hasn't been
+   confirmed against a real (unmocked) server response, since every
+   capture used in this project came from a stubbed `/submit-form/`
+   response. Whether a real submission reliably advances the user is
+   currently unverified.
 
 (1) and (3) are the same underlying pattern — the app fails silently with
 no user-facing signal — which is the more interesting/systemic finding
-versus a one-off cosmetic bug.
+versus a one-off cosmetic bug. (4) and (6) are both flagged as needing
+more confirmation before being called fully closed — see `TEST_PLAN.md`'s
+test case matrix for exact status per item.
 
 ## Limitations of what's built here
 
